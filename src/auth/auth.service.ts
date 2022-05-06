@@ -1,13 +1,15 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
+import { Code, CODE_TYPE, User } from '@prisma/client';
 import { UserCreateDto } from './dto/UserCreateDto';
 import { UsersService } from '../users/users.service';
 import { authConstants } from './constants';
 import { RabbitMqService } from '../rabbit-mq/rabbit-mq.service';
-import { Code, CODE_TYPE, User } from '../../generated/client';
 import { ILoginResult } from '../utils/types/ILoginResult';
 import { UserGetPayload } from '../utils/types/prisma/User';
+import { AuthErrors } from '../utils/messages/errors/auth';
+import { CommonErrors } from '../utils/messages/errors/common';
 
 @Injectable()
 export class AuthService {
@@ -18,11 +20,11 @@ export class AuthService {
     ) {}
 
     async verifyUser(email: string, code: string): Promise<any> {
-        const user: UserGetPayload =
-            await this.usersService.findOneByEmailWithCodes(email);
+        const user: UserGetPayload = await this.usersService.findOneByEmailWithCodes(email);
+
         console.log(user);
         if (!user) {
-            throw new HttpException('User not found', HttpStatus.BAD_REQUEST);
+            throw new BadRequestException(AuthErrors.UserNotFound);
         }
 
         const emailVerificationCode: Code = user.codes.find(
@@ -30,21 +32,17 @@ export class AuthService {
         );
 
         if (emailVerificationCode.code !== code) {
-            throw new HttpException('Code is wrong', HttpStatus.BAD_REQUEST);
+            throw new BadRequestException(AuthErrors.CodeInvalid);
         }
 
         return this.usersService.confirmUserVerification(email);
     }
 
     async register(data: UserCreateDto): Promise<any> {
-        const user: User = await this.usersService.findOneByEmailWithCodes(
-            data.email,
-        );
+        const user: User = await this.usersService.findOneByEmailWithCodes(data.email);
+
         if (user) {
-            throw new HttpException(
-                'User already exists',
-                HttpStatus.BAD_REQUEST,
-            );
+            throw new BadRequestException(AuthErrors.UserAlreadyExists);
         }
 
         const password: string = await this.getHashedPassword(data.password);
@@ -54,24 +52,21 @@ export class AuthService {
                 ...data,
                 password,
             });
+
             console.log('userDb', userDb);
             // await this.rabbitMQService.send('rabbit-mq-producer', { email: userDb.email, code: '5432' });
 
             return userDb;
-        } catch (error: any) {
-            console.log('Error', error);
+        } catch {
+            throw new InternalServerErrorException(CommonErrors.InternalServerError);
         }
-
-        return new HttpException('Database error', HttpStatus.BAD_REQUEST);
     }
 
     async login({ email, password: passwordRequest }): Promise<ILoginResult> {
         const user: User = await this.findUser(email);
 
-        const passwordMatches: boolean = await this.isPasswordValid(
-            passwordRequest,
-            user.password,
-        );
+        const passwordMatches: boolean = await this.isPasswordValid(passwordRequest, user.password);
+
         if (user && passwordMatches) {
             const { password, ...result } = user;
             const accessToken: string = this.jwtService.sign(result);
@@ -83,11 +78,10 @@ export class AuthService {
     }
 
     async findUser(email: string): Promise<User> {
-        const user: User = await this.usersService.findOneByEmailWithCodes(
-            email,
-        );
+        const user: User = await this.usersService.findOneByEmailWithCodes(email);
+
         if (!user) {
-            throw new HttpException('UNAUTHORIZED', HttpStatus.UNAUTHORIZED);
+            throw new UnauthorizedException(CommonErrors.Unauthorized);
         }
 
         return user;

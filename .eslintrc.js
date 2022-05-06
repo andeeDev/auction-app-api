@@ -22,7 +22,18 @@ module.exports = {
     ignorePatterns: ['.eslintrc.js'],
     rules: {
         semi: 'error',
-        indent: ['error', 4, { "VariableDeclarator": 2, "ignoredNodes": ["PropertyDefinition"]} ],
+        indent: [
+            'error',
+            4,
+            {
+                MemberExpression: 1,
+                ignoredNodes: [
+                    'FunctionExpression > .params[decorators.length > 0]',
+                    'FunctionExpression > .params > :matches(Decorator, :not(:first-child))',
+                    'ClassBody.body > PropertyDefinition[decorators.length > 0] > .key',
+                ],
+            },
+        ],
         'no-debugger': 'off',
         'no-console': 0,
         '@typescript-eslint/interface-name-prefix': 'off',
@@ -50,6 +61,7 @@ module.exports = {
         'import/prefer-default-export': 'off',
         'keyword-spacing': ['error'],
         'class-methods-use-this': 'off',
-        '@typescript-eslint/no-shadow': 'off'
+        '@typescript-eslint/no-shadow': 'off',
+        'newline-after-var': ['error', 'always']
     },
 };

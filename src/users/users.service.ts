@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { User, CODE_TYPE } from '../../generated/client';
+import { User, CODE_TYPE } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserCreateDto } from '../auth/dto/UserCreateDto';
 
@@ -23,14 +23,6 @@ export class UsersService {
             },
         });
     }
-
-    /*    async findOneByEmail(email: string): Promise<User> {
-        return this.prismaService.user.findUnique({
-            where: {
-                email,
-            },
-        });
-    } */
 
     async findOneByEmailWithCodes(email: string): Promise<any> {
         return this.prismaService.user.findUnique({

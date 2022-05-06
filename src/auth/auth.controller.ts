@@ -17,10 +17,7 @@ export class AuthController {
     }
 
     @Post('/account/confirm')
-    confirmAccount(
-        @Body('email') email: string,
-        @Body('code') code: string,
-    ): Promise<any> {
+    confirmAccount(@Body('email') email: string, @Body('code') code: string): Promise<any> {
         return this.authService.verifyUser(email, code);
     }
 }
