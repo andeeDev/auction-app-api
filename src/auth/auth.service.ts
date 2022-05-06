@@ -22,7 +22,6 @@ export class AuthService {
     async verifyUser(email: string, code: string): Promise<any> {
         const user: UserGetPayload = await this.usersService.findOneByEmailWithCodes(email);
 
-        console.log(user);
         if (!user) {
             throw new BadRequestException(AuthErrors.UserNotFound);
         }
@@ -53,8 +52,7 @@ export class AuthService {
                 password,
             });
 
-            console.log('userDb', userDb);
-            // await this.rabbitMQService.send('rabbit-mq-producer', { email: userDb.email, code: '5432' });
+            await this.rabbitMQService.send('rabbit-mq-producer', { email: userDb.email, code: '5432' });
 
             return userDb;
         } catch {

@@ -34,8 +34,9 @@ module.exports = {
                 ],
             },
         ],
-        'no-debugger': 'off',
-        'no-console': 0,
+        'no-debugger': 'error',
+        'no-console': 'error',
+        'no-alert': 'error',
         '@typescript-eslint/interface-name-prefix': 'off',
         '@typescript-eslint/explicit-function-return-type': ['error'],
         '@typescript-eslint/explicit-module-boundary-types': 'off',
@@ -62,6 +63,6 @@ module.exports = {
         'keyword-spacing': ['error'],
         'class-methods-use-this': 'off',
         '@typescript-eslint/no-shadow': 'off',
-        'newline-after-var': ['error', 'always']
+        'newline-after-var': ['error', 'always'],
     },
 };
