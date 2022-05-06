@@ -37,7 +37,7 @@ export class AuthService {
         return this.usersService.confirmUserVerification(email);
     }
 
-    async register(data: UserCreateDto): Promise<any> {
+    async register(data: UserCreateDto): Promise<User> {
         const user: User = await this.usersService.findOneByEmailWithCodes(data.email);
 
         if (user) {
@@ -47,14 +47,19 @@ export class AuthService {
         const password: string = await this.getHashedPassword(data.password);
 
         try {
-            const userDb: User = await this.usersService.createUser({
+            const userDb: UserGetPayload = await this.usersService.createUser({
                 ...data,
                 password,
             });
+            const {
+                email,
+                codes: [{ code }],
+                ...rest
+            } = userDb;
 
-            await this.rabbitMQService.send('rabbit-mq-producer', { email: userDb.email, code: '5432' });
+            // await this.rabbitMQService.send('rabbit-mq-producer', { email, code: code.toString() });
 
-            return userDb;
+            return { ...rest, email };
         } catch {
             throw new InternalServerErrorException(CommonErrors.InternalServerError);
         }

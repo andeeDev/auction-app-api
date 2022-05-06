@@ -2,12 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { User, CODE_TYPE } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserCreateDto } from '../auth/dto/UserCreateDto';
+import { UserGetPayload } from '../utils/types/prisma/User';
 
 @Injectable()
 export class UsersService {
     constructor(private readonly prismaService: PrismaService) {}
 
-    async createUser(data: UserCreateDto): Promise<User> {
+    async createUser(data: UserCreateDto): Promise<UserGetPayload> {
         const randomNumber: number = Math.random() * 10_000;
         const code: string = Math.floor(randomNumber).toString();
 

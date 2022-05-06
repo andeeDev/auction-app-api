@@ -23,7 +23,7 @@ model Code {
     id        Int      @default(autoincrement()) @id
     code      String
     provider  CODE_TYPE
-    user      User?    @relation(fields: [userId], references: [id])
+    user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
     userId    Int?
 }
 
