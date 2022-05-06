@@ -6,6 +6,7 @@ services:
     image: nestjs-api:1.0.0
     environment:
       - NODE_ENV:${NODE_ENV}
+      - DATABASE_URL:${DATABASE_URL}
     build:
       context: .
       args:
@@ -17,11 +18,14 @@ services:
     ports:
       - "8000:8000"
     networks:
-      - nesjs-network
+      - nestjs-network
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
     restart: unless-stopped
+    depends_on:
+      - postgres
+      - rabbitmq
 
 
   postgres:
@@ -33,11 +37,12 @@ services:
       - db:/var/lib/postgresql/data
     restart: always
     environment:
+      - POSTGRES_DB=${POSTGRES_DB}
       - DB_USER=${POSTGRES_USER}
       - DB_PASS=${POSTGRES_PASSWORD}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     networks:
-      - nesjs-network
+      - nestjs-network
 
 
   adminer:
@@ -45,9 +50,11 @@ services:
     restart: always
     ports:
       - "8080:8080"
+    networks:
+      - nestjs-network
 
   rabbitmq:
-    image: rabbitmq:3-management-alpine
+    build: ./rabbitmq
     container_name: 'rabbitmq'
     ports:
       - "5672:5672"
@@ -57,7 +64,7 @@ services:
       - rabbitmq_log:/var/log/rabbitmq/
     networks:
       - rabbitmq_go_net
-      - nesjs-network
+      - nestjs-network
 
 volumes:
   rabbitmq_data:
@@ -66,8 +73,8 @@ volumes:
     driver: local
 
 networks:
-  nesjs-network:
+  nestjs-network:
     name: nestjs-network
-    external: true
+    #external: true
   rabbitmq_go_net:
     driver: bridge
