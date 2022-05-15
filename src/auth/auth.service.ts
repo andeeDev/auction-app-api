@@ -4,12 +4,13 @@ import { JwtService } from '@nestjs/jwt';
 import { Code, CODE_TYPE, User } from '@prisma/client';
 import { UserCreateDto } from './dto/UserCreateDto';
 import { UsersService } from '../users/users.service';
-import { authConstants } from './constants';
 import { RabbitMqService } from '../rabbit-mq/rabbit-mq.service';
 import { ILoginResult } from '../utils/types/ILoginResult';
 import { UserGetPayload } from '../utils/types/prisma/User';
 import { AuthErrors } from '../utils/messages/errors/auth';
 import { CommonErrors } from '../utils/messages/errors/common';
+import { RabbitMqQueues } from '../utils/types/RabbitMqQueues';
+import { getHashedPassword } from '../utils/helpers/PasswordHelper';
 
 @Injectable()
 export class AuthService {
@@ -44,7 +45,7 @@ export class AuthService {
             throw new BadRequestException(AuthErrors.UserAlreadyExists);
         }
 
-        const password: string = await this.getHashedPassword(data.password);
+        const password: string = await getHashedPassword(data.password);
 
         try {
             const userDb: UserGetPayload = await this.usersService.createUser({
@@ -57,7 +58,7 @@ export class AuthService {
                 ...rest
             } = userDb;
 
-            // await this.rabbitMQService.send('rabbit-mq-producer', { email, code: code.toString() });
+            await this.rabbitMQService.send(RabbitMqQueues.AccountVerification, { email, code: code.toString() });
 
             return { ...rest, email };
         } catch {
@@ -88,10 +89,6 @@ export class AuthService {
         }
 
         return user;
-    }
-
-    async getHashedPassword(password: string): Promise<string> {
-        return bcrypt.hash(password, authConstants.saltOrRounds);
     }
 
     async isPasswordValid(password: string, hash: string): Promise<boolean> {

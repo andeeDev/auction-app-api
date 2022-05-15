@@ -1,8 +1,9 @@
 version: '3.8'
 
 services:
-  dev:
+  nestjs_api:
     container_name: nestjs_api
+    hostname: nestjs_api
     image: nestjs-api:1.0.0
     environment:
       - NODE_ENV:${NODE_ENV}
@@ -16,7 +17,7 @@ services:
     env_file:
       - .env
     ports:
-      - "8000:8000"
+      - "9000:9000"
     networks:
       - nestjs-network
     volumes:
@@ -30,6 +31,7 @@ services:
 
   postgres:
     container_name: postgres
+    hostname: postgres
     image: postgres:14.1-alpine
     ports:
       - "5432:5432"
@@ -43,7 +45,6 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     networks:
       - nestjs-network
-
 
   adminer:
     image: adminer
@@ -63,7 +64,6 @@ services:
       - rabbitmq_data:/var/lib/rabbitmq/
       - rabbitmq_log:/var/log/rabbitmq/
     networks:
-      - rabbitmq_go_net
       - nestjs-network
 
 volumes:
@@ -75,6 +75,4 @@ volumes:
 networks:
   nestjs-network:
     name: nestjs-network
-    #external: true
-  rabbitmq_go_net:
     driver: bridge

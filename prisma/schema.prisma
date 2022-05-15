@@ -17,14 +17,25 @@ model User {
   name  String?
   isVerified Boolean @default(false)
   codes Code[]
+  passwordTokens PasswordToken[]
 }
 
 model Code {
-    id        Int      @default(autoincrement()) @id
+    id        Int     @default(autoincrement()) @id
     code      String
     provider  CODE_TYPE
-    user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
-    userId    Int?
+    isValid   Boolean @default(true)
+    attempts  Int 	  @default(0)
+    user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId    Int
+}
+
+model PasswordToken {
+    id          Int     @default(autoincrement()) @id
+	token 	    String
+	isValid		Boolean @default(true)
+    user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId      Int
 }
 
 enum CODE_TYPE {
