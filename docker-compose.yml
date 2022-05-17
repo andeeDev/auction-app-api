@@ -21,7 +21,7 @@ services:
     networks:
       - nestjs-network
     volumes:
-      - .:/usr/src/app
+      - ./:/usr/src/app
       - /usr/src/app/node_modules
     restart: unless-stopped
     depends_on:

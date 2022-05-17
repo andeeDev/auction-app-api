@@ -1,7 +1,7 @@
 import { Body, Controller, Post, Res } from '@nestjs/common';
+import { Response } from 'express';
 import { SendResetCodeDto, GetTokenDto, ResetPasswordDto } from './dto';
 import { PasswordService } from './password.service';
-import { Response } from 'express';
 
 @Controller('password')
 export class PasswordController {
@@ -18,10 +18,7 @@ export class PasswordController {
     }
 
     @Post('reset')
-    async reset(
-        @Body() resetPasswordDto: ResetPasswordDto,
-        @Res() response: Response
-    ): Promise<void> {
+    async reset(@Body() resetPasswordDto: ResetPasswordDto, @Res() response: Response): Promise<void> {
         return this.passwordService.resetPassword(resetPasswordDto, response);
     }
 }

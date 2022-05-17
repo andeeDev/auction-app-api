@@ -5,4 +5,5 @@ export enum CommonErrors {
     InvalidateCodeError = 'Code was invalidated',
     InvalidToken = "Token isn't valid",
     TokenNotExists = "Token doesn't exists",
+    InternalPrismaError = 'Prisma not found error',
 }

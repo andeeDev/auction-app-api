@@ -1,13 +1,19 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { User, CODE_TYPE } from '@prisma/client';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import { Logger } from 'winston';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserCreateDto } from '../auth/dto/UserCreateDto';
 import { UserGetPayload } from '../utils/types/prisma/User';
 import { CodeGeneratorHelper } from '../utils/helpers/CodeGeneratorHelper';
+import { AuthErrors } from '../utils/messages/errors/auth';
 
 @Injectable()
 export class UsersService {
-    constructor(private readonly prismaService: PrismaService) {}
+    constructor(
+        private readonly prismaService: PrismaService,
+        @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
+    ) {}
 
     async createUser(data: UserCreateDto): Promise<UserGetPayload> {
         const code: string = CodeGeneratorHelper.generateCode();
@@ -25,13 +31,24 @@ export class UsersService {
         });
     }
 
-    async findOneByEmailWithCodes(email: string): Promise<UserGetPayload> {
+    async findUser(email: string): Promise<UserGetPayload> {
         return this.prismaService.user.findUnique({
             where: {
                 email,
             },
             include: { codes: true },
         });
+    }
+
+    async findOneByEmailWithCodes(email: string): Promise<any> {
+        const user: UserGetPayload = await this.findUser(email);
+
+        if (!user) {
+            this.logger.error(AuthErrors.UserNotFound);
+            throw new BadRequestException(AuthErrors.UserNotFound);
+        }
+
+        return user;
     }
 
     async confirmUserVerification(email: string): Promise<User> {

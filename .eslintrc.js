@@ -64,5 +64,6 @@ module.exports = {
         'class-methods-use-this': 'off',
         '@typescript-eslint/no-shadow': 'off',
         'newline-after-var': ['error', 'always'],
+        'import/no-extraneous-dependencies': 'off',
     },
 };
