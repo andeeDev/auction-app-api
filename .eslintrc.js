@@ -65,5 +65,6 @@ module.exports = {
         '@typescript-eslint/no-shadow': 'off',
         'newline-after-var': ['error', 'always'],
         'import/no-extraneous-dependencies': 'off',
+        '@typescript-eslint/no-inferrable-types': 'off'
     },
 };
