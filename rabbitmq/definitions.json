@@ -19,7 +19,7 @@
       "name": "/"
     },
     {
-      "name": "/notifications"
+      "name": "notifications"
     }
   ],
   "permissions": [
@@ -32,7 +32,7 @@
     },
     {
       "user": "andee",
-      "vhost": "/notifications",
+      "vhost": "notifications",
       "configure": ".*",
       "write": ".*",
       "read": ".*"
@@ -46,7 +46,7 @@
     },
     {
       "user": "guest",
-      "vhost": "/notifications",
+      "vhost": "notifications",
       "configure": ".*",
       "write": ".*",
       "read": ".*"
@@ -56,12 +56,27 @@
   "policies": [],
   "queues": [
     {
-      "name":"rabbit-mq-nest-js",
-      "vhost":"/notifications",
+      "name":"notification-events",
+      "vhost":"notifications",
       "durable":true,
       "auto_delete":false,
       "arguments":{}
-    }],
+    },
+    {
+      "name":"auth-service",
+      "vhost":"notifications",
+      "durable":true,
+      "auto_delete":false,
+      "arguments":{}
+    },
+    {
+      "name":"order-service",
+      "vhost":"notifications",
+      "durable":true,
+      "auto_delete":false,
+      "arguments":{}
+    }
+  ],
   "exchanges": [],
   "bindings": []
 }
