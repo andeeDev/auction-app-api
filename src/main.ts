@@ -1,11 +1,20 @@
 import { HttpAdapterHost, NestFactory } from '@nestjs/core';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Transport } from '@nestjs/microservices';
+import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 import { PrismaExceptionsFilter } from './utils/filters/PrismaExceptionsFilter';
 
 async function bootstrap(): Promise<void> {
     const app: INestApplication = await NestFactory.create(AppModule);
+
+    const config: ConfigService = app.get<ConfigService>(ConfigService);
+
+    const user: string = config.get('rabbitmq.user');
+    const password: string = config.get('rabbitmq.password');
+    const host: string = config.get('rabbitmq.host');
+    const vhost: string = config.get('rabbitmq.vhost');
+    const rabbitMqConnectionString: string = `amqp://${user}:${password}@${host}/${vhost}`;
 
     app.connectMicroservice({
         transport: Transport.RMQ,
@@ -16,6 +25,18 @@ async function bootstrap(): Promise<void> {
             },
         },
     });
+    app.connectMicroservice({
+        transport: Transport.RMQ,
+        options: {
+            urls: [rabbitMqConnectionString],
+            queue: 'auth-service',
+            // false = manual acknowledgement; true = automatic acknowledgment
+            // noAck: false,
+            // Get one by one
+            prefetchCount: 1,
+        },
+    });
+
     app.setGlobalPrefix('api/v1');
     app.useGlobalPipes(
         new ValidationPipe({

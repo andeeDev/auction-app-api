@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
 import * as winston from 'winston';
 import { utilities as nestWinstonModuleUtilities, WinstonModule } from 'nest-winston';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { RabbitMqModule } from './rabbit-mq/rabbit-mq.module';
 import { PasswordModule } from './password/password.module';
+import { configuration } from '../config/configuration';
+import { validationSchema } from '../config/validation';
 
 @Module({
     imports: [
@@ -26,8 +27,14 @@ import { PasswordModule } from './password/password.module';
                 }),
             ],
         }),
+        ConfigModule.forRoot({
+            isGlobal: true,
+            load: [configuration],
+            validationSchema,
+            envFilePath: ['.env'],
+        }),
     ],
-    controllers: [AppController],
-    providers: [AppService],
+    controllers: [],
+    providers: [],
 })
 export class AppModule {}
