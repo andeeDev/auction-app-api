@@ -1,16 +1,49 @@
 import { Module } from '@nestjs/common';
-import { ClientsModule, Transport } from '@nestjs/microservices';
+import { ClientProvider, ClientsModule, Transport } from '@nestjs/microservices';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { RabbitMqService } from './rabbit-mq.service';
 
 @Module({
     imports: [
-        ClientsModule.register([
+        ClientsModule.registerAsync([
             {
-                name: 'rabbit-mq-module',
-                transport: Transport.RMQ,
-                options: {
-                    urls: ['amqp://andee:guest@rabbitmq//notifications'],
-                    queue: 'rabbit-mq-nest-js',
+                name: 'notification-events',
+                imports: [ConfigModule],
+                inject: [ConfigService],
+                useFactory: async (configService: ConfigService): Promise<ClientProvider> => {
+                    const rabbitmqConnectionUrl: string = `amqp://${configService.get<string>(
+                        'rabbitmq.user',
+                    )}:${configService.get<string>('rabbitmq.password')}@${configService.get<string>(
+                        'rabbitmq.host',
+                    )}/${configService.get<string>('rabbitmq.vhost')}`;
+
+                    return {
+                        transport: Transport.RMQ,
+                        options: {
+                            urls: [rabbitmqConnectionUrl],
+                            queue: 'notification-events',
+                        },
+                    };
+                },
+            },
+            {
+                name: 'auth-service',
+                imports: [ConfigModule],
+                inject: [ConfigService],
+                useFactory: async (configService: ConfigService): Promise<ClientProvider> => {
+                    const rabbitmqConnectionUrl: string = `amqp://${configService.get<string>(
+                        'rabbitmq.user',
+                    )}:${configService.get<string>('rabbitmq.password')}@${configService.get<string>(
+                        'rabbitmq.host',
+                    )}/${configService.get<string>('rabbitmq.vhost')}`;
+
+                    return {
+                        transport: Transport.RMQ,
+                        options: {
+                            urls: [rabbitmqConnectionUrl],
+                            queue: 'auth-service',
+                        },
+                    };
                 },
             },
         ]),

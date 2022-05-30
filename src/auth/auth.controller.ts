@@ -1,23 +1,25 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller } from '@nestjs/common';
+import { Ctx, MessagePattern, Payload, RmqContext } from '@nestjs/microservices';
 import { AuthService } from './auth.service';
 import { UserCreateDto } from './dto/UserCreateDto';
+import { RabbitMqService } from '../rabbit-mq/rabbit-mq.service';
 
 @Controller('auth')
 export class AuthController {
-    constructor(private readonly authService: AuthService) {}
+    constructor(private readonly rabbitMqService: RabbitMqService, private readonly authService: AuthService) {}
 
-    @Post('/login')
-    login(@Body() body: UserCreateDto): Promise<any> {
-        return this.authService.login(body);
+    @MessagePattern('login')
+    login(@Payload() body /*: UserCreateDto */, @Ctx() context: RmqContext): Promise<any> {
+        return this.authService.login(body, context);
     }
 
-    @Post('/register')
-    register(@Body() body: UserCreateDto): Promise<any> {
+    @MessagePattern('register')
+    register(@Payload() body: UserCreateDto): Promise<any> {
         return this.authService.register(body);
     }
 
-    @Post('/account/confirm')
-    confirmAccount(@Body('email') email: string, @Body('code') code: string): Promise<any> {
+    @MessagePattern('confirm')
+    confirmAccount(@Payload('email') email: string, @Body('code') code: string): Promise<any> {
         return this.authService.verifyUser(email, code);
     }
 }

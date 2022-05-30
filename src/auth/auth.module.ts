@@ -14,7 +14,7 @@ import { RabbitMqModule } from '../rabbit-mq/rabbit-mq.module';
         RabbitMqModule,
         JwtModule.register({
             secret: authConstants.secret,
-            signOptions: { issuer: authConstants.issuer, expiresIn: authConstants.tokenExpirationTime },
+            signOptions: { expiresIn: authConstants.tokenExpirationTime },
         }),
     ],
     controllers: [AuthController],
