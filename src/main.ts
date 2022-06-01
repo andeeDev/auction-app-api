@@ -30,14 +30,13 @@ async function bootstrap(): Promise<void> {
         options: {
             urls: [rabbitMqConnectionString],
             queue: 'auth-service',
-            // false = manual acknowledgement; true = automatic acknowledgment
-            // noAck: false,
-            // Get one by one
+            queueOptions: {
+                messageTtl: 10_000,
+            },
             prefetchCount: 1,
         },
     });
 
-    app.setGlobalPrefix('api/v1');
     app.useGlobalPipes(
         new ValidationPipe({
             whitelist: true,

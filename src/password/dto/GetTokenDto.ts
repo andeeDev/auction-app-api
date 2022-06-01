@@ -1,12 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
-
-export class GetTokenDto {
-    @IsEmail()
-    @IsString()
-    @IsNotEmpty()
+export interface GetTokenDto {
     email: string;
-
-    @IsString()
-    @IsNotEmpty()
     code: string;
 }

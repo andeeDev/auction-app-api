@@ -4,8 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Code, CODE_TYPE, User } from '@prisma/client';
 import { Logger } from 'winston';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { RmqContext } from '@nestjs/microservices';
-import { UserCreateDto } from './dto/UserCreateDto';
+import { AuthDto } from './dto/AuthDto';
 import { UsersService } from '../users/users.service';
 import { RabbitMqService } from '../rabbit-mq/rabbit-mq.service';
 import { ILoginResult } from '../utils/types/ILoginResult';
@@ -26,7 +25,7 @@ export class AuthService {
         @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
     ) {}
 
-    async verifyUser(email: string, code: string): Promise<any> {
+    async verifyUser(email: string, code: string): Promise<User> {
         try {
             const user: UserGetPayload = await this.usersService.findOneByEmailWithCodes(email);
 
@@ -50,9 +49,9 @@ export class AuthService {
         }
     }
 
-    async register(data: UserCreateDto): Promise<User> {
+    async register(data: AuthDto): Promise<User> {
         try {
-            const user: UserGetPayload = await this.usersService.findOneByEmailWithCodes(data.email);
+            const user: UserGetPayload = await this.usersService.findUser(data.email);
 
             if (user) {
                 this.logger.error(AuthErrors.UserAlreadyExists);
@@ -80,7 +79,7 @@ export class AuthService {
         }
     }
 
-    async login({ email, password: passwordRequest }, context: RmqContext): Promise<ILoginResult> {
+    async login({ email, password: passwordRequest }: AuthDto): Promise<ILoginResult> {
         try {
             const user: UserGetPayload = await this.findUser(email);
 

@@ -3,10 +3,10 @@ import { User, CODE_TYPE } from '@prisma/client';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 import { PrismaService } from '../prisma/prisma.service';
-import { UserCreateDto } from '../auth/dto/UserCreateDto';
 import { UserGetPayload } from '../utils/types/prisma/User';
 import { CodeGeneratorHelper } from '../utils/helpers/CodeGeneratorHelper';
 import { AuthErrors } from '../utils/messages/errors/auth';
+import { AuthDto } from '../auth/dto/AuthDto';
 
 @Injectable()
 export class UsersService {
@@ -15,7 +15,7 @@ export class UsersService {
         @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
     ) {}
 
-    async createUser(data: UserCreateDto): Promise<UserGetPayload> {
+    async createUser(data: AuthDto): Promise<UserGetPayload> {
         const code: string = CodeGeneratorHelper.generateCode();
 
         return this.prismaService.user.create({

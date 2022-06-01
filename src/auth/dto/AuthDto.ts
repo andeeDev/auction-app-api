@@ -1,7 +1,4 @@
-export class IUser {
-    id: number;
-
+export interface AuthDto {
     email: string;
-
     password: string;
 }
