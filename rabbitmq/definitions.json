@@ -67,14 +67,18 @@
       "vhost":"notifications",
       "durable":true,
       "auto_delete":false,
-      "arguments":{}
+      "arguments":{
+        "x-message-ttl": 10000
+      }
     },
     {
       "name":"order-service",
       "vhost":"notifications",
       "durable":true,
       "auto_delete":false,
-      "arguments":{}
+      "arguments":{
+        "x-message-ttl": 10000
+      }
     }
   ],
   "exchanges": [],
