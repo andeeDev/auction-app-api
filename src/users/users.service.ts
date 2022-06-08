@@ -6,7 +6,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { UserGetPayload } from '../utils/types/prisma/User';
 import { CodeGeneratorHelper } from '../utils/helpers/CodeGeneratorHelper';
 import { AuthErrors } from '../utils/messages/errors/auth';
-import { AuthDto } from '../auth/dto/AuthDto';
+import AuthDto from '../auth/dto/AuthDto';
 
 @Injectable()
 export class UsersService {

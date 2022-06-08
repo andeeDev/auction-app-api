@@ -3,7 +3,7 @@ import { MessagePattern, Payload } from '@nestjs/microservices';
 import { User } from '@prisma/client';
 import { AuthService } from './auth.service';
 import { RabbitMqService } from '../rabbit-mq/rabbit-mq.service';
-import { AuthDto } from './dto/AuthDto';
+import AuthDto from './dto/AuthDto';
 import { ILoginResult } from '../utils/types/ILoginResult';
 
 @Controller('auth')

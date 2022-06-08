@@ -4,7 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Code, CODE_TYPE, User } from '@prisma/client';
 import { Logger } from 'winston';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { AuthDto } from './dto/AuthDto';
+import AuthDto from './dto/AuthDto';
 import { UsersService } from '../users/users.service';
 import { RabbitMqService } from '../rabbit-mq/rabbit-mq.service';
 import { ILoginResult } from '../utils/types/ILoginResult';
@@ -84,6 +84,11 @@ export class AuthService {
             const user: UserGetPayload = await this.findUser(email);
 
             const passwordMatches: boolean = await this.isPasswordValid(passwordRequest, user.password);
+
+            if (user.isVerified) {
+                this.logger.error(AuthErrors.AccountNotConfirmed);
+                throw new BadRequestException(AuthErrors.AccountNotConfirmed);
+            }
 
             if (!passwordMatches) {
                 this.logger.error(AuthErrors.PasswordsNotMatch);
