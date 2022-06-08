@@ -10,19 +10,21 @@ services:
       - DATABASE_URL:${DATABASE_URL}
     build:
       context: .
-      args:
-        - NODE_ENV="${NODE_ENV}"
       dockerfile: ./Dockerfile
-    entrypoint: ["npm", "run", "start:debug"]
+      target: builder
+    command: npm run start:debug
     env_file:
       - .env
     ports:
       - "9000:9000"
     networks:
       - nestjs-network
-    volumes:
-      - ./:/usr/src/app
-      - /usr/src/app/node_modules
+    #volumes:
+    #  - .:/app
+    #  - ./app/node_modules
+    #volumes:
+    #  - ./:/app
+    #  - /app/node_modules
     restart: unless-stopped
     depends_on:
       - postgres

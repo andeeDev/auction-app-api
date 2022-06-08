@@ -21,7 +21,6 @@ module.exports = {
     },
     ignorePatterns: ['.eslintrc.js'],
     rules: {
-        semi: 'error',
         indent: [
             'error',
             4,
@@ -65,6 +64,6 @@ module.exports = {
         '@typescript-eslint/no-shadow': 'off',
         'newline-after-var': ['error', 'always'],
         'import/no-extraneous-dependencies': 'off',
-        '@typescript-eslint/no-inferrable-types': 'off'
+        '@typescript-eslint/no-inferrable-types': 'off',
     },
 };
