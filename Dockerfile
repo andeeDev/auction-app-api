@@ -14,6 +14,8 @@ COPY . .
 
 RUN npm run build
 
+CMD [  "npm", "run", "start:migrate" ]
+
 FROM node:18 as production
 
 COPY --from=builder /app/node_modules ./node_modules
