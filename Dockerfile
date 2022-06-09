@@ -1,4 +1,4 @@
-FROM node:18 AS builder
+FROM node:18.1.0-alpine3.14 AS builder
 
 # Create app directory
 WORKDIR /app
@@ -12,11 +12,13 @@ RUN npm install
 
 COPY . .
 
+
 RUN npm run build
 
 CMD [  "npm", "run", "start:migrate" ]
 
-FROM node:18 as production
+
+FROM node:18.1.0-alpine3.14 as production
 
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
