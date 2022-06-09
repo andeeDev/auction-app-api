@@ -15,11 +15,13 @@ async function bootstrap(): Promise<void> {
     const host: string = config.get('rabbitmq.host');
     const vhost: string = config.get('rabbitmq.vhost');
     const rabbitMqConnectionString: string = `amqp://${user}:${password}@${host}/${vhost}`;
+    const port: number = config.get('rabbitmq.port');
+    const connectionUrl: string = `amqp://${host}:${port}`;
 
     app.connectMicroservice({
         transport: Transport.RMQ,
         options: {
-            urls: ['amqp://localhost:5672'], // amqp://rabbitmq:5672
+            urls: [connectionUrl],
             queueOptions: {
                 durable: false,
             },

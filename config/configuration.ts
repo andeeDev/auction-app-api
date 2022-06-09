@@ -10,6 +10,7 @@ export const configuration: any = () => {
             password: process.env.RABBIT_MQ_PASSWORD,
             host: process.env.RABBIT_MQ_HOST,
             vhost: process.env.RABBIT_MQ_VHOST,
+            port: process.env.RABBIT_MQ_PORT,
         },
     };
 };
