@@ -77,4 +77,4 @@ volumes:
 networks:
   nestjs-network:
     name: nestjs-network
-    driver: bridge
+    #driver: bridge

@@ -1,5 +1,5 @@
 export interface IJwtConst {
     secret: string;
-    tokenExpirationTime: string;
+    // tokenExpirationTime: string;
     saltOrRounds: number;
 }

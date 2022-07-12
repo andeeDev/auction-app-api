@@ -3,7 +3,7 @@ type CodeGeneratorHelperType = {
 };
 export const CodeGeneratorHelper: CodeGeneratorHelperType = {
     generateCode(): string {
-        const randomNumber: number = Math.random() * 10_000;
+        const randomNumber: number = Math.floor(1000 + Math.random() * 9000);
 
         return Math.floor(randomNumber).toString();
     },

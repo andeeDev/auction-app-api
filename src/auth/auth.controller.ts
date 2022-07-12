@@ -21,7 +21,7 @@ export class AuthController {
     }
 
     @MessagePattern('confirm')
-    confirmAccount(@Payload('email') email: string, @Payload('code') code: string): Promise<User> {
+    confirmAccount(@Payload('email') email: string, @Payload('code') code: string): Promise<ILoginResult> {
         return this.authService.verifyUser(email, code);
     }
 }

@@ -25,16 +25,16 @@ export class AuthService {
         @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
     ) {}
 
-    async verifyUser(email: string, code: string): Promise<User> {
+    async verifyUser(email: string, code: string): Promise<ILoginResult> {
         try {
-            const user: UserGetPayload = await this.usersService.findOneByEmailWithCodes(email);
+            const userGetPayload: UserGetPayload = await this.usersService.findOneByEmailWithCodes(email);
 
-            if (!user) {
+            if (!userGetPayload) {
                 this.logger.error(AuthErrors.UserNotFound);
                 throw new BadRequestException(AuthErrors.UserNotFound);
             }
 
-            const emailVerificationCode: Code = user.codes.find(
+            const emailVerificationCode: Code = userGetPayload.codes.find(
                 (code: Code) => code.provider === CODE_TYPE.EMAIL_VERIFICATION,
             );
 
@@ -43,7 +43,11 @@ export class AuthService {
                 throw new BadRequestException(AuthErrors.CodeInvalid);
             }
 
-            return await this.usersService.confirmUserVerification(email);
+            const user: User = await this.usersService.confirmUserVerification(email);
+
+            const accessToken: string = this.jwtService.sign(user);
+
+            return { ...user, accessToken };
         } catch (error: unknown) {
             return RemoteExceptionHelper.handleRemoteError(this.logger, error);
         }
@@ -85,7 +89,7 @@ export class AuthService {
 
             const passwordMatches: boolean = await this.isPasswordValid(passwordRequest, user.password);
 
-            if (user.isVerified) {
+            if (!user.isVerified) {
                 this.logger.error(AuthErrors.AccountNotConfirmed);
                 throw new BadRequestException(AuthErrors.AccountNotConfirmed);
             }
