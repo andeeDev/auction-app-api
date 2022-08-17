@@ -49,7 +49,8 @@ async function bootstrap(): Promise<void> {
 
     app.useGlobalFilters(new PrismaExceptionsFilter(httpAdapter));
     await app.startAllMicroservices();
-    await app.listen(process.env.PORT || 9000);
+    // await app.listen(process.env.PORT || 9000);
 }
 
+/* eslint-disable unicorn/prefer-top-level-await */
 bootstrap();

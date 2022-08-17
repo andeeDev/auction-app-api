@@ -3,7 +3,7 @@ import { User, CODE_TYPE } from '@prisma/client';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 import { PrismaService } from '../prisma/prisma.service';
-import { UserGetPayload } from '../utils/types/prisma/User';
+import { BareUserType, UserGetPayload } from '../utils/types/prisma/User';
 import { CodeGeneratorHelper } from '../utils/helpers/CodeGeneratorHelper';
 import { AuthErrors } from '../utils/messages/errors/auth';
 import AuthDto from '../auth/dto/AuthDto';
@@ -55,6 +55,16 @@ export class UsersService {
         return this.prismaService.user.update({
             where: { email },
             data: { isVerified: true },
+        });
+    }
+
+    async getAll(): Promise<BareUserType[]> {
+        return this.prismaService.user.findMany({
+            select: {
+                id: true,
+                email: true,
+                name: true,
+            },
         });
     }
 }
