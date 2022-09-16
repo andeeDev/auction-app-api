@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { Code, CODE_TYPE, User } from '@prisma/client';
@@ -7,14 +7,17 @@ import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import AuthDto from './dto/AuthDto';
 import { UsersService } from '../users/users.service';
 import { RabbitMqService } from '../rabbit-mq/rabbit-mq.service';
-import { ILoginResult } from '../utils/types/ILoginResult';
 import { UserGetPayload } from '../utils/types/prisma/User';
 import { AuthErrors } from '../utils/messages/errors/auth';
-import { CommonErrors } from '../utils/messages/errors/common';
+import { CommonErrorMessages } from '../utils/messages/errors/common';
 import { RabbitMqQueues } from '../utils/types/RabbitMqQueues';
 import { getHashedPassword } from '../utils/helpers/PasswordHelper';
-import { AuthSuccess } from '../utils/messages/success/auth';
-import { RemoteExceptionHelper } from '../utils/helpers/RemoteExceptionHelper';
+import { ExceptionHandler } from '../utils/helpers/RemoteExceptionHelper';
+import { genericSuccessResponse } from '../utils/types/DefaultSuccessResponse';
+import { LoginRes, RegisterRes, VerifyUserRes } from '../utils/types/returnTypes/auth';
+import { AppLogger } from '../utils/helpers/CustomLogger';
+import { AuthErrorTypes } from '../utils/types/loggerTypes/ErrorTypes';
+import { AuthSuccessTypes } from '../utils/types/loggerTypes/SuccessTypes';
 
 @Injectable()
 export class AuthService {
@@ -25,13 +28,20 @@ export class AuthService {
         @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
     ) {}
 
-    async verifyUser(email: string, code: string): Promise<ILoginResult> {
+    async verifyUser(email: string, code: string): Promise<VerifyUserRes> {
         try {
             const userGetPayload: UserGetPayload = await this.usersService.findOneByEmailWithCodes(email);
 
             if (!userGetPayload) {
-                this.logger.error(AuthErrors.UserNotFound);
-                throw new BadRequestException(AuthErrors.UserNotFound);
+                AppLogger.logError(this.logger, {
+                    type: AuthErrorTypes.VerifiedNotFoundUserError,
+                    message: AuthErrors.UserNotFound,
+                });
+
+                return {
+                    status: HttpStatus.BAD_REQUEST,
+                    message: AuthErrors.UserNotFound,
+                };
             }
 
             const emailVerificationCode: Code = userGetPayload.codes.find(
@@ -39,27 +49,46 @@ export class AuthService {
             );
 
             if (emailVerificationCode.code !== code) {
-                this.logger.error(AuthErrors.CodeInvalid);
-                throw new BadRequestException(AuthErrors.CodeInvalid);
+                AppLogger.logError(this.logger, {
+                    type: AuthErrorTypes.VerifiedCodeWrongError,
+                    message: AuthErrors.CodeInvalid,
+                });
+
+                return {
+                    status: HttpStatus.BAD_REQUEST,
+                    message: AuthErrors.CodeInvalid,
+                };
             }
 
             const user: User = await this.usersService.confirmUserVerification(email);
 
             const accessToken: string = this.jwtService.sign(user);
 
-            return { ...user, accessToken };
+            AppLogger.logInfo(this.logger, { type: AuthSuccessTypes.VerifiedSuccess });
+
+            return {
+                ...genericSuccessResponse,
+                payload: { ...user, accessToken },
+            };
         } catch (error: unknown) {
-            return RemoteExceptionHelper.handleRemoteError(this.logger, error);
+            return ExceptionHandler.handleError(error, AuthErrorTypes.VerifiedError);
         }
     }
 
-    async register(data: AuthDto): Promise<User> {
+    async register(data: AuthDto): Promise<RegisterRes> {
         try {
             const user: UserGetPayload = await this.usersService.findUser(data.email);
 
             if (user) {
-                this.logger.error(AuthErrors.UserAlreadyExists);
-                throw new BadRequestException(AuthErrors.UserAlreadyExists);
+                AppLogger.logError(this.logger, {
+                    type: AuthErrorTypes.RegisterUserNotFoundError,
+                    message: AuthErrors.UserNotFound,
+                });
+
+                return {
+                    status: HttpStatus.BAD_REQUEST,
+                    message: AuthErrors.UserAlreadyExists,
+                };
             }
 
             const password: string = await getHashedPassword(data.password);
@@ -75,50 +104,69 @@ export class AuthService {
             } = userDb;
 
             await this.rabbitMQService.send(RabbitMqQueues.AccountVerification, { email, code: code.toString() });
-            this.logger.info(AuthSuccess.RegisterMessage);
 
-            return { ...rest, email };
+            AppLogger.logInfo(this.logger, { type: AuthSuccessTypes.RegisterSuccess });
+
+            return { ...genericSuccessResponse, payload: { ...rest, email } };
         } catch (error: unknown) {
-            return RemoteExceptionHelper.handleRemoteError(this.logger, error);
+            return ExceptionHandler.handleError(error, AuthErrorTypes.RegisterError);
         }
     }
 
-    async login({ email, password: passwordRequest }: AuthDto): Promise<ILoginResult> {
+    async login({ email, password: passwordRequest }: AuthDto): Promise<LoginRes> {
         try {
-            const user: UserGetPayload = await this.findUser(email);
+            const user: UserGetPayload = await this.usersService.findOneByEmailWithCodes(email);
+
+            if (!user) {
+                AppLogger.logError(this.logger, {
+                    type: AuthErrorTypes.LoginUserNotExistsError,
+                    message: CommonErrorMessages.Unauthorized,
+                });
+
+                return {
+                    message: CommonErrorMessages.Unauthorized,
+                    status: HttpStatus.BAD_REQUEST,
+                };
+            }
 
             const passwordMatches: boolean = await this.isPasswordValid(passwordRequest, user.password);
 
             if (!user.isVerified) {
-                this.logger.error(AuthErrors.AccountNotConfirmed);
-                throw new BadRequestException(AuthErrors.AccountNotConfirmed);
+                AppLogger.logError(this.logger, {
+                    type: AuthErrorTypes.LoginUserNotVerifiedError,
+                    message: AuthErrors.AccountNotConfirmed,
+                });
+
+                return {
+                    message: AuthErrors.AccountNotConfirmed,
+                    status: HttpStatus.BAD_REQUEST,
+                };
             }
 
             if (!passwordMatches) {
-                this.logger.error(AuthErrors.PasswordsNotMatch);
-                throw new BadRequestException(AuthErrors.PasswordsNotMatch);
+                AppLogger.logError(this.logger, {
+                    type: AuthErrorTypes.LoginPasswordMatchesError,
+                    message: AuthErrors.PasswordsNotMatch,
+                });
+
+                return {
+                    message: AuthErrors.PasswordsNotMatch,
+                    status: HttpStatus.BAD_REQUEST,
+                };
             }
 
             const { password, codes, ...result } = user;
             const accessToken: string = this.jwtService.sign(result);
 
-            this.logger.info(AuthSuccess.LoginMessage);
+            AppLogger.logInfo(this.logger, { type: AuthSuccessTypes.LoginSuccess });
 
-            return { ...result, accessToken };
+            return {
+                ...genericSuccessResponse,
+                payload: { ...result, accessToken },
+            };
         } catch (error: unknown) {
-            return RemoteExceptionHelper.handleRemoteError(this.logger, error);
+            return ExceptionHandler.handleError(error, AuthErrorTypes.LoginError);
         }
-    }
-
-    async findUser(email: string): Promise<UserGetPayload> {
-        const user: UserGetPayload = await this.usersService.findOneByEmailWithCodes(email);
-
-        if (!user) {
-            this.logger.error(AuthErrors.EmailNotFound);
-            throw new UnauthorizedException(CommonErrors.Unauthorized);
-        }
-
-        return user;
     }
 
     async isPasswordValid(password: string, hash: string): Promise<boolean> {

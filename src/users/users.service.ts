@@ -7,6 +7,12 @@ import { BareUserType, UserGetPayload } from '../utils/types/prisma/User';
 import { CodeGeneratorHelper } from '../utils/helpers/CodeGeneratorHelper';
 import { AuthErrors } from '../utils/messages/errors/auth';
 import AuthDto from '../auth/dto/AuthDto';
+import { GetAllUsersRes } from '../utils/types/returnTypes';
+import { genericSuccessResponse } from '../utils/types/DefaultSuccessResponse';
+import { AppLogger } from '../utils/helpers/CustomLogger';
+import { ExceptionHandler } from '../utils/helpers/RemoteExceptionHelper';
+import { UsersErrorTypes } from '../utils/types/loggerTypes/ErrorTypes';
+import { UsersSuccessTypes } from '../utils/types/loggerTypes/SuccessTypes';
 
 @Injectable()
 export class UsersService {
@@ -58,13 +64,24 @@ export class UsersService {
         });
     }
 
-    async getAll(): Promise<BareUserType[]> {
-        return this.prismaService.user.findMany({
-            select: {
-                id: true,
-                email: true,
-                name: true,
-            },
-        });
+    async getAll(): Promise<GetAllUsersRes> {
+        try {
+            const bareUsers: BareUserType[] = await this.prismaService.user.findMany({
+                select: {
+                    id: true,
+                    email: true,
+                    name: true,
+                },
+            });
+
+            AppLogger.logInfo(this.logger, { type: UsersSuccessTypes.FetchAllUsersSuccess });
+
+            return {
+                ...genericSuccessResponse,
+                payload: bareUsers,
+            };
+        } catch (error: unknown) {
+            return ExceptionHandler.handleError(error, UsersErrorTypes.GetAllUsersTypes);
+        }
     }
 }

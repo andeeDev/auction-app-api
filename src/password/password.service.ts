@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { Code, CODE_TYPE, PasswordToken } from '@prisma/client';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
@@ -9,13 +9,17 @@ import { UsersService } from '../users/users.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RabbitMqService } from '../rabbit-mq/rabbit-mq.service';
 import { RandomStringGenerate } from '../utils/helpers/RandomStringGenerate';
-import { CommonErrors } from '../utils/messages/errors/common';
+import { CommonErrorMessages } from '../utils/messages/errors/common';
 import { PasswordConst } from '../utils/consts/PasswordConst';
 import { getHashedPassword } from '../utils/helpers/PasswordHelper';
 import { PasswordSuccess } from '../utils/messages/success';
 import { ResetPasswordDto } from './dto';
-import { PasswordErrors } from '../utils/messages/errors/password';
-import { RemoteExceptionHelper } from '../utils/helpers/RemoteExceptionHelper';
+import { ExceptionHandler } from '../utils/helpers/RemoteExceptionHelper';
+import { PasswordErrorTypes } from '../utils/types/loggerTypes/ErrorTypes';
+import { genericSuccessResponse } from '../utils/types/DefaultSuccessResponse';
+import { GetTokenRes, ResetPasswordRes, SendVerificationCodeRes } from '../utils/types/returnTypes/password';
+import { AppLogger } from '../utils/helpers/CustomLogger';
+import { PasswordSuccessTypes } from '../utils/types/loggerTypes/SuccessTypes';
 
 @Injectable()
 export class PasswordService {
@@ -26,13 +30,14 @@ export class PasswordService {
         @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
     ) {}
 
-    async sendResetVerificationCode(email: string): Promise<{ message: PasswordSuccess }> {
+    async sendResetVerificationCode(email: string): Promise<SendVerificationCodeRes> {
         try {
             const user: UserGetPayload = await this.usersService.findOneByEmailWithCodes(email);
 
             const code: string = CodeGeneratorHelper.generateCode();
 
-            await this.rabbitMQService.send(RabbitMqQueues.ResetPassword, { email, code });
+            this.rabbitMQService.send(RabbitMqQueues.ResetPassword, { email, code });
+
             await this.prismaService.code.create({
                 data: {
                     userId: user.id,
@@ -40,15 +45,19 @@ export class PasswordService {
                     provider: CODE_TYPE.PASSWORD_RESET,
                 },
             });
-            this.logger.info(PasswordSuccess.PasswordResetCodeSentSuccessfully);
 
-            return { message: PasswordSuccess.PasswordResetCodeSentSuccessfully };
+            AppLogger.logInfo(this.logger, { type: PasswordSuccessTypes.SendVerificationCodeSuccess });
+
+            return {
+                ...genericSuccessResponse,
+                message: PasswordSuccess.PasswordResetCodeSentSuccessfully,
+            };
         } catch (error: unknown) {
-            return RemoteExceptionHelper.handleRemoteError(this.logger, error);
+            return ExceptionHandler.handleError(error, PasswordErrorTypes.SentResetVerificationError);
         }
     }
 
-    async getToken(email: string, code: string): Promise<PasswordToken> {
+    async getToken(email: string, code: string): Promise<GetTokenRes> {
         try {
             const user: any = await this.prismaService.user.findFirst({
                 where: { email },
@@ -60,7 +69,15 @@ export class PasswordService {
             const token: string = RandomStringGenerate.getToken();
 
             if (!codeModel.isValid) {
-                throw new BadRequestException(CommonErrors.BadCodeError);
+                AppLogger.logError(this.logger, {
+                    type: PasswordErrorTypes.GetTokenUserNotVerifiedError,
+                    message: CommonErrorMessages.BadCodeError,
+                });
+
+                return {
+                    status: HttpStatus.BAD_REQUEST,
+                    message: CommonErrorMessages.BadCodeError,
+                };
             }
 
             if (codeModel.attempts >= PasswordConst.MaxAttemptCount) {
@@ -68,7 +85,16 @@ export class PasswordService {
                     where: { id: codeModel.id },
                     data: { isValid: false, attempts: codeModel.attempts + 1 },
                 });
-                throw new BadRequestException(CommonErrors.InvalidateCodeError);
+
+                AppLogger.logError(this.logger, {
+                    type: PasswordErrorTypes.MaxAttemptsError,
+                    message: CommonErrorMessages.InvalidateCodeError,
+                });
+
+                return {
+                    status: HttpStatus.BAD_REQUEST,
+                    message: CommonErrorMessages.InvalidateCodeError,
+                };
             }
 
             if (codeModel.code !== code) {
@@ -76,10 +102,19 @@ export class PasswordService {
                     where: { id: codeModel.id },
                     data: { attempts: codeModel.attempts + 1 },
                 });
-                throw new BadRequestException(CommonErrors.BadCodeError);
+
+                AppLogger.logError(this.logger, {
+                    type: PasswordErrorTypes.WrongCodeProvidedError,
+                    message: CommonErrorMessages.BadCodeError,
+                });
+
+                return {
+                    status: HttpStatus.BAD_REQUEST,
+                    message: CommonErrorMessages.BadCodeError,
+                };
             }
 
-            const passwordToken: any = await this.prismaService.passwordToken.create({
+            const passwordToken: PasswordToken = await this.prismaService.passwordToken.create({
                 data: {
                     token,
                     userId: user.id,
@@ -91,15 +126,18 @@ export class PasswordService {
                 data: { isValid: false },
             });
 
-            this.logger.info(PasswordSuccess.PasswordToken);
+            AppLogger.logInfo(this.logger, { type: PasswordSuccessTypes.GetTokenSuccess });
 
-            return passwordToken;
+            return {
+                ...genericSuccessResponse,
+                payload: passwordToken,
+            };
         } catch (error: unknown) {
-            return RemoteExceptionHelper.handleRemoteError(this.logger, error);
+            return ExceptionHandler.handleError(error, PasswordErrorTypes.GetTokenError);
         }
     }
 
-    async resetPassword({ email, token, password }: ResetPasswordDto): Promise<any> {
+    async resetPassword({ email, token, password }: ResetPasswordDto): Promise<ResetPasswordRes> {
         try {
             const user: UserGetPayloadWithTokens = await this.prismaService.user.findFirst({
                 where: { email },
@@ -110,13 +148,27 @@ export class PasswordService {
                 .at(-1);
 
             if (!passwordToken) {
-                this.logger.error(PasswordErrors.PasswordNotExists);
-                throw new BadRequestException(CommonErrors.TokenNotExists);
+                AppLogger.logError(this.logger, {
+                    type: PasswordErrorTypes.PasswordTokenNotFoundError,
+                    message: CommonErrorMessages.TokenNotExists,
+                });
+
+                return {
+                    status: HttpStatus.BAD_REQUEST,
+                    message: CommonErrorMessages.TokenNotExists,
+                };
             }
 
             if (!passwordToken.isValid) {
-                this.logger.error(PasswordErrors.PasswordInvalid);
-                throw new BadRequestException(CommonErrors.InvalidToken);
+                AppLogger.logError(this.logger, {
+                    type: PasswordErrorTypes.PasswordTokenNotValidError,
+                    message: CommonErrorMessages.InvalidToken,
+                });
+
+                return {
+                    status: HttpStatus.BAD_REQUEST,
+                    message: CommonErrorMessages.InvalidToken,
+                };
             }
 
             const updatedPassword: string = await getHashedPassword(password);
@@ -128,11 +180,14 @@ export class PasswordService {
                 where: { email },
             });
 
-            this.logger.info(PasswordSuccess.UpdatedSuccessfully);
+            AppLogger.logInfo(this.logger, { type: PasswordSuccessTypes.ResetPasswordSuccess });
 
-            return { message: PasswordSuccess.UpdatedSuccessfully };
+            return {
+                ...genericSuccessResponse,
+                message: PasswordSuccess.UpdatedSuccessfully,
+            };
         } catch (error: unknown) {
-            return RemoteExceptionHelper.handleRemoteError(this.logger, error);
+            return ExceptionHandler.handleError(error, PasswordErrorTypes.ResetPasswordError);
         }
     }
 }

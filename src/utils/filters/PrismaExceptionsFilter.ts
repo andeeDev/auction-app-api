@@ -8,7 +8,7 @@ import {
     PrismaClientUnknownRequestError,
     PrismaClientValidationError,
 } from '@prisma/client/runtime';
-import { CommonErrors } from '../messages/errors/common';
+import { CommonErrorMessages } from '../messages/errors/common';
 
 @Catch(
     PrismaClientKnownRequestError,
@@ -32,7 +32,7 @@ export class PrismaExceptionsFilter implements ExceptionFilter {
             statusCode: httpStatus,
             timestamp: new Date().toISOString(),
             path: httpAdapter.getRequestUrl(ctx.getRequest()),
-            message: CommonErrors.InternalPrismaError,
+            message: CommonErrorMessages.InternalPrismaError,
         };
 
         httpAdapter.reply(ctx.getResponse(), responseBody, httpStatus);

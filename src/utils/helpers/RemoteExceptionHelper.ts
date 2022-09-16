@@ -1,29 +1,24 @@
-import { RpcException } from '@nestjs/microservices';
-import { Logger } from 'winston';
-import { HttpException } from '@nestjs/common/exceptions/http.exception';
-import { CommonErrors } from '../messages/errors/common';
+import { HttpStatus } from '@nestjs/common';
+import { GenericResponse } from '../types/returnTypes/basic';
+import { AppLogger } from './CustomLogger';
+import { ErrorType } from '../types/loggerTypes/ErrorTypes';
 
-interface IRemoteExceptionHelper {
-    handleRemoteError: (logger: Logger, error: unknown) => never;
+interface IExceptionHandler {
+    handleError: (error: unknown, type: ErrorType) => GenericResponse;
 }
 
-export const RemoteExceptionHelper: IRemoteExceptionHelper = {
-    handleRemoteError(logger: Logger, error: unknown): never {
-        if (error instanceof HttpException) {
-            logger.error(error.message);
-            throw new RpcException({
-                message: error.message,
-                code: error.getStatus(),
-            });
-        }
-        if (error instanceof Error) {
-            logger.error(error.message);
-            throw new RpcException({
-                message: error.message,
-                code: 500,
-            });
-        }
-        logger.error(error);
-        throw new RpcException(CommonErrors.InternalUnknownError);
+export const ExceptionHandler: IExceptionHandler = {
+    handleError(error: unknown, type: ErrorType): GenericResponse {
+        const { message = '' } = error as Error;
+
+        AppLogger.logError(this.logger, {
+            type,
+            message,
+        });
+
+        return {
+            message,
+            status: HttpStatus.INTERNAL_SERVER_ERROR,
+        };
     },
 };

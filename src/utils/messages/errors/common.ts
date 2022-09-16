@@ -1,4 +1,4 @@
-export enum CommonErrors {
+export enum CommonErrorMessages {
     InternalServerError = 'Internal server error',
     Unauthorized = 'UNAUTHORIZED',
     BadCodeError = 'Code provided is wrong',
