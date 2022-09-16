@@ -1,30 +1,31 @@
-FROM node:16.13.2-alpine3.14 AS development
+FROM node:18.1.0-alpine3.14 AS builder
 
-WORKDIR /usr/src/app
+# Create app directory
+WORKDIR /app
 
+# A wildcard is used to ensure both package.json AND package-lock.json are copied
 COPY package*.json ./
+COPY prisma ./prisma/
 
-RUN npm install glob rimraf
-
-RUN npm install --only=development
+# Install app dependencies
+RUN npm install
 
 COPY . .
+
 
 RUN npm run build
 
-FROM node:16.13.2-alpine3.14 as production
+CMD [  "npm", "run", "start:migrate" ]
 
-ARG NODE_ENV=production
-ENV NODE_ENV=${NODE_ENV}
 
-WORKDIR /usr/src/app
+FROM node:18.1.0-alpine3.14 as production
 
-COPY package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
 
-RUN npm install --only=production
-
-COPY . .
-
-COPY --from=development /usr/src/app/dist ./dist
-
-CMD ["node", "dist/main"]
+#EXPOSE 9000
+# 👇 new migrate and start app script
+CMD [ "node", "dist/main" ]
+#CMD [  "npm", "run", "start:dev" ]
