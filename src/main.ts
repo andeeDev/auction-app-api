@@ -1,9 +1,8 @@
-import { HttpAdapterHost, NestFactory } from '@nestjs/core';
+import { NestFactory } from '@nestjs/core';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Transport } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
-import { PrismaExceptionsFilter } from './utils/filters/PrismaExceptionsFilter';
 
 async function bootstrap(): Promise<void> {
     const app: INestApplication = await NestFactory.create(AppModule);
@@ -45,9 +44,6 @@ async function bootstrap(): Promise<void> {
         }),
     );
 
-    const httpAdapter: HttpAdapterHost = app.get(HttpAdapterHost);
-
-    app.useGlobalFilters(new PrismaExceptionsFilter(httpAdapter));
     await app.startAllMicroservices();
     // await app.listen(process.env.PORT || 9000);
 }
