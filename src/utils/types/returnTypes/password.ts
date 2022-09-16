@@ -7,6 +7,4 @@ export interface GetTokenRes extends GenericResponse {
     payload?: PasswordToken;
 }
 
-export interface ResetPasswordRes extends GenericResponse {
-
-}
+export type ResetPasswordRes = GenericResponse;
